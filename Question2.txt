@@ -1,0 +1,46 @@
+
+with A as
+(
+SELECT
+    custno,
+    orderid,
+    order_dt,
+    to_char(order_dt::timestamp with time zone, 'YYYY-MM'::text) AS year_month
+FROM hdr
+    GROUP BY custno, orderid, order_dt
+
+ ),
+
+ -- 2a Provide a list of all customers with their number of visits for every year-month.
+B as
+(
+select
+    custno,
+    year_month,
+    count(*) as ym_visits
+from A
+    group by custno, year_month
+),
+ -- Using the output of 2a, for very year-month, rank the customers in order of number of visits.
+C as
+(
+
+select
+      distinct custno,
+      year_month,
+      ym_visits,
+      rank() over (partition by year_month order by ym_visits desc) as rank_ym
+from B
+      group by custno, year_month, ym_visits
+      order by year_month, ym_visits desc
+)
+ -- Using output of 2b, display the top 2 for every year-month.
+select
+      custno,
+      year_month,
+      ym_visits,
+      rank_ym
+from C
+      where rank_ym <= 2
+      group by 1,2,3,4
+      order by 2,3 desc

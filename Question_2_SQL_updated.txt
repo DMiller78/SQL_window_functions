@@ -1,0 +1,37 @@
+
+create view q2_view
+as (
+SELECT 
+	orderid,
+    custno,
+    order_dt,
+    to_char(h.order_dt::timestamp with time zone, 'YYYY-MM'::text) AS year_month
+   FROM hdr 
+
+)
+
+with row_no
+AS
+(
+SELECT distinct orderid,
+       custno,
+       Year_Month,
+       count(orderid) over (order by year_month) as total_visits_yrmo, 
+       count(year_month) over (partition by custno order by year_month) as visits,
+       row_number() over (partition by year_month order by year_month) as row_num
+from q2_view
+group by
+1,2,3
+)
+
+
+select
+    year_month, custno, total_visits_yrmo, visits, row_num,
+    rank() over (partition by visits order by year_month desc)
+    from row_no
+    where year_month IN ('2019-05', '2019-06')
+    and row_num <=2
+    group by
+        1,2,3,4,5
+    order by
+        year_month, visits desc

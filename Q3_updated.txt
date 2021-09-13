@@ -1,0 +1,19 @@
+-- Question 3: What is the average days between visits for each customer
+
+with A
+as
+(select
+      h.custno, h.order_dt, d.dt, d.holiday_flag, d.workday_flag,
+      count(distinct h.order_dt) as cust_count,
+      lag(h.order_dt) over (partition by h.custno) as lag_order_dt
+from  hdr h LEFT JOIN date d
+on h.order_dt = d.dt
+where d.holiday_flag = 'false'
+and d.workday_flag = 'true'
+group by 1,2,3,4,5
+ )
+select custno, avg(order_dt - lag_order_dt) as days_bw_visits
+from A
+where lag_order_dt is not null
+group by 1
+order by days_bw_visits desc;
